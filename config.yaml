@@ -1,0 +1,189 @@
+# =============================================================================
+# PIPELINE CONFIGURATION - Classification Documents 16 Catégories
+# =============================================================================
+
+pipeline:
+  # Activation/désactivation des étapes
+  # Si désactivé, vérifie que les fichiers d'entrée existent
+  steps:
+    ocr: false              # true = refaire OCR, false = utiliser ocr_all.csv existant
+    exploration: true       # Générer rapports exploration image + texte
+    text_mining: true       # Prétraitement + vectorisation TF-IDF
+    train_sklearn: true     # Modèles ML classiques (NB, LR, RF, SVM)
+    train_transformers: true # BERT + XLM-RoBERTa
+    evaluate: true          # Matrices de confusion + métriques
+    shap_global: true       # Explications SHAP globales (500 docs)
+    comparison: true        # Tableau comparatif auto + choix meilleur modèle
+    report: true            # Rapport Markdown/HTML final
+
+  # Vérification stricte des dépendances
+  check_dependencies: true
+
+# =============================================================================
+# DONNÉES
+# =============================================================================
+
+data:
+  raw_csv: "data/raw/images_paths.csv"      # CSV avec chemins images + labels
+  ocr_csv: "data/intermediate/ocr_all.csv"   # Sortie OCR (entrée si ocr=false)
+  intermediate: "data/intermediate"          # Dossier des artefacts intermédiaires (vectorizer, etc.)
+  sample_size: 10000                          # 0 = tout prendre (400 000)
+  random_state: 42
+  test_size: 0.2                             # 20% test
+  min_text_length: 100                       # Filtrer documents vides
+
+  # Split fixe par indices (généré une fois, réutilisé)
+  train_indices: "data/intermediate/train_indices.npy"
+  test_indices: "data/intermediate/test_indices.npy"
+
+  # Fichiers text mining
+  train_df: "data/intermediate/train_df.csv"
+  test_df: "data/intermediate/test_df.csv"
+  X_train_tfidf: "data/intermediate/X_train_tfidf.npz"
+  X_test_tfidf: "data/intermediate/X_test_tfidf.npz"
+  y_train: "data/intermediate/y_train.npy"
+  y_test: "data/intermediate/y_test.npy"
+
+# =============================================================================
+# OCR (Tesseract)
+# =============================================================================
+
+ocr:
+  tesseract_cmd: null        # null = utiliser PATH système
+  language: "eng"           # eng, fra, eng+fra
+  preprocess: true           # adaptiveThreshold + denoising
+  confidence_threshold: 0    # 0 = pas de filtre
+
+# =============================================================================
+# TEXT MINING
+# =============================================================================
+
+text_mining:
+  vectorizer: "tfidf"       # tfidf ou count
+  max_features: 20000
+  ngram_range: [1, 2]
+  min_df: 2
+  max_df: 0.95
+  sublinear_tf: true
+  use_stemming: false
+  use_lemmatization: true
+
+# =============================================================================
+# MODÈLES SKLEARN (ML Classique)
+# =============================================================================
+
+sklearn:
+  models:
+    - name: "naive_bayes"
+      class: "MultinomialNB"
+      params:
+        alpha: 0.1
+
+    - name: "logistic_regression"
+      class: "LogisticRegression"
+      params:
+        max_iter: 1000
+        C: 1.0
+        random_state: 42
+        n_jobs: -1
+
+    - name: "random_forest"
+      class: "RandomForestClassifier"
+      params:
+        n_estimators: 200
+        random_state: 42
+        n_jobs: -1
+
+    - name: "linear_svm"
+      class: "LinearSVC"
+      params:
+        max_iter: 2000
+        random_state: 42
+
+# =============================================================================
+# TRANSFORMERS (Deep Learning)
+# =============================================================================
+
+transformers:
+  models:
+    - name: "bert"
+      model_name: "bert-base-uncased"
+      max_length: 256            # adapté à un GPU 4 Go
+      batch_size: 4
+      gradient_accumulation: 8   # batch effectif = 32
+      epochs: 3
+      learning_rate: 2.0e-5
+      weight_decay: 0.01
+      warmup_ratio: 0.1
+      fp16: true
+
+    - name: "xlmroberta"
+      model_name: "xlm-roberta-base"
+      max_length: 256            # modèle plus lourd que BERT (vocab 250k)
+      batch_size: 2              # adapté à un GPU 4 Go
+      gradient_accumulation: 16  # batch effectif = 32
+      epochs: 3
+      learning_rate: 2.0e-5
+      weight_decay: 0.01
+      warmup_ratio: 0.1
+      fp16: true
+
+# =============================================================================
+# SHAP (INTERPRÉTABILITÉ)
+# =============================================================================
+
+shap:
+  global_sample_size: 500    # Nombre de docs pour explication globale
+  max_display: 20            # Features/tokens à afficher
+  local_enabled: true        # SHAP à la volée dans l'API
+
+# =============================================================================
+# ÉVALUATION & COMPARAISON
+# =============================================================================
+
+evaluation:
+  metrics:
+    - "accuracy"
+    - "f1_macro"
+    - "f1_weighted"
+    - "precision_macro"
+    - "recall_macro"
+
+  # Métrique principale pour choisir le meilleur modèle
+  primary_metric: "f1_macro"
+
+  # Sauvegardes
+  save_predictions: true
+  save_confusion_matrices: true
+
+# =============================================================================
+# API FASTAPI
+# =============================================================================
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  model_name: "best"         # "best" = auto, ou nom spécifique
+  enable_shap_local: true
+  max_file_size: 10_000_000  # 10 MB
+
+# =============================================================================
+# RAPPORTS
+# =============================================================================
+
+reports:
+  format: "markdown"         # markdown, html, ou both
+  exploration_dir: "reports/exploration"
+  comparison_dir: "reports/comparison"
+  include_image_plots: true
+  include_text_plots: true
+
+# =============================================================================
+# SORTIES
+# =============================================================================
+
+output:
+  models_dir: "models"
+  sklearn_dir: "models/sklearn"
+  transformers_dir: "models/transformers"
+  logs_dir: "logs"
