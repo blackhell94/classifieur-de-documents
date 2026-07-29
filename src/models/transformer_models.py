@@ -208,9 +208,11 @@ def train_transformer_models(config: PipelineConfig) -> Dict[str, Any]:
     train_df["text"] = train_df["text"].apply(clean_for_transformers)
     test_df["text"] = test_df["text"].apply(clean_for_transformers)
 
-    # Filtrer textes trop courts
+    # Filtrer les textes trop courts UNIQUEMENT dans le train.
+    # Le test set doit rester intact et identique pour tous les modèles
+    # (sklearn et transformers), sinon la comparaison est faussée et les
+    # prédictions ne s'alignent plus avec y_test.
     train_df = train_df[train_df["text"].str.len() > 10].reset_index(drop=True)
-    test_df = test_df[test_df["text"].str.len() > 10].reset_index(drop=True)
 
     logger.info(f"Train: {len(train_df)} | Test: {len(test_df)}")
 
