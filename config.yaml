@@ -7,10 +7,10 @@ pipeline:
   # Si désactivé, vérifie que les fichiers d'entrée existent
   steps:
     ocr: false              # true = refaire OCR, false = utiliser ocr_all.csv existant
-    exploration: true       # Générer rapports exploration image + texte
-    text_mining: true       # Prétraitement + vectorisation TF-IDF
-    train_sklearn: true     # Modèles ML classiques (NB, LR, RF, SVM)
-    train_transformers: true # BERT + XLM-RoBERTa
+    exploration: false       # Générer rapports exploration image + texte
+    text_mining: false       # Prétraitement + vectorisation TF-IDF
+    train_sklearn: false     # Modèles ML classiques (NB, LR, RF, SVM)
+    train_transformers: false # BERT + XLM-RoBERTa
     evaluate: true          # Matrices de confusion + métriques
     shap_global: true       # Explications SHAP globales (500 docs)
     comparison: true        # Tableau comparatif auto + choix meilleur modèle
