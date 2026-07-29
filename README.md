@@ -139,12 +139,6 @@ Modifier `config.yaml` pour:
 - Configurer les hyperparamètres
 - Ajuster les paramètres SHAP
 
-## Tests
-
-```bash
-pytest tests/
-```
-
 ## Licence
 
 MIT
