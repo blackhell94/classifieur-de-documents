@@ -136,11 +136,18 @@ def evaluate_all_models(config: PipelineConfig) -> Dict[str, Any]:
 
     for model_name in all_metrics.keys():
         pred_path = os.path.join(output_dir, f'pred_{model_name}.npy')
-        if os.path.exists(pred_path):
-            y_pred = np.load(pred_path)
-            plot_confusion_matrix(y_test, y_pred, model_name, output_dir)
-        else:
+        if not os.path.exists(pred_path):
             logger.warning(f"  Prédictions non trouvées pour {model_name}")
+            continue
+        y_pred = np.load(pred_path)
+        if len(y_pred) != len(y_test):
+            logger.warning(
+                f"  Prédictions de {model_name} ignorées: {len(y_pred)} échantillons "
+                f"au lieu de {len(y_test)}. Régénérez-les sur le test set complet "
+                f"(scripts/regenerate_predictions.py)."
+            )
+            continue
+        plot_confusion_matrix(y_test, y_pred, model_name, output_dir)
 
     # Graphique comparatif
     comparison_plot = plot_model_comparison_bar(all_metrics, output_dir)
