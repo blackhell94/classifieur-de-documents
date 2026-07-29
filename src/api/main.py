@@ -377,9 +377,8 @@ async def list_models():
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",
+        app,
         host=config.api.host,
         port=config.api.port,
-        reload=False,
         log_level="info",
     )
